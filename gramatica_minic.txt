@@ -1,0 +1,61 @@
+<programa> ::= program <identificador> {
+                  { <declaração> }
+                  { <comando> }
+               }
+
+<declaração> ::= <tipo> <lista_identificadores> ;
+
+<tipo> ::= int | bool
+
+<lista_identificadores> ::= <identificador>
+                            { , <identificador> }
+
+<comando> ::= <atribuição>
+            | <leitura>
+            | <escrita>
+            | <condicional>
+            | <bloco>
+
+<atribuição> ::= <identificador> = <expressão> ;
+
+<leitura> ::= read ( <lista_identificadores> ) ;
+
+<escrita> ::= write ( <lista_expressoes> ) ;
+
+<condicional> ::= if ( <expressão> ) <bloco>
+                  [ else <bloco> ]
+
+<bloco> ::= {
+                { <comando> }
+             }
+
+<lista_expressoes> ::= <expressão>
+                       { , <expressão> }
+
+<expressão> ::= <expressão_logica>
+
+<expressão_logica> ::= <expressão_logica> || <expressão_and>
+                     | <expressão_and>
+
+<expressão_and> ::= <expressão_and> && <expressão_relacional>
+                  | <expressão_relacional>
+
+<expressão_relacional> ::= <expressão_aritmética>
+                           [ <operador_relacional>
+                             <expressão_aritmética> ]
+
+<operador_relacional> ::= < | <= | > | >= | == | !=
+
+<expressão_aritmética> ::= <termo>
+                           { (+ | -) <termo> }
+
+<termo> ::= <fator>
+            { (* | /) <fator> }
+
+<fator> ::= <identificador>
+          | <número>
+          | true
+          | false
+          | ( <expressão> )
+          | ! <fator>
+          | - <fator>
