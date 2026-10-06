@@ -1,0 +1,5 @@
+program Teste {
+    int x;
+    x = 10;
+    write(x);
+}
