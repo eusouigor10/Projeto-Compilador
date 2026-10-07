@@ -29,6 +29,18 @@ def analisar(codigo):
             tokens.append(token)
             continue
 
+        #delimitadores
+        if caractere in DELIMITADORES:
+            token, posicao = analisar_delimitador(codigo, posicao, linha)
+            tokens.append(token)
+            continue
+
+        #operadores
+        if caractere in OPERADORES or codigo[posicao:posicao + 2] in OPERADORES:
+            token, posicao = analisar_operador(codigo, posicao, linha)
+            tokens.append(token)
+            continue
+
         #demais análises serão adicionadas aqui
 
         posicao += 1
@@ -79,3 +91,28 @@ def analisar_numero(codigo, posicao, linha):
     token = Token("NUMERO", numero, linha)
 
     return token, posicao
+
+def analisar_delimitador(codigo, posicao, linha):
+    caractere = codigo[posicao]
+
+    tipo = DELIMITADORES[caractere]
+
+    token = Token(tipo, caractere, linha)
+
+    return token, posicao + 1
+
+def analisar_operador(codigo, posicao, linha):
+    operador = codigo[posicao]
+
+    if posicao + 1 < len(codigo):
+        proximo = codigo[posicao + 1]
+        operador_duplo = operador + proximo
+
+        if operador_duplo in OPERADORES:
+            operador = operador_duplo
+
+    tipo = OPERADORES[operador]
+
+    token = Token(tipo, operador, linha)
+
+    return token, posicao + len(operador)
