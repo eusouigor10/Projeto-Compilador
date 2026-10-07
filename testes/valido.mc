@@ -1,5 +1,10 @@
-program Teste {
-    int x;
+program TesteLexico {
+
+    int x, resultado123;
+    bool maior;
+
     x = 10;
-    write(x);
+    resultado123 = 250;
+
+    maior = true;
 }
