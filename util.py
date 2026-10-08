@@ -38,9 +38,7 @@ OPERADORES = { #operadores da linguagem
     "&&": "E",
     "||": "OU",
     "!": "NAO",
-    "=": "ATRIBUICAO",
-    "&&": "E",
-    "||": "OU"
+    "=": "ATRIBUICAO"
 }
 
 
