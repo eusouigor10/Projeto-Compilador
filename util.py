@@ -52,3 +52,7 @@ DELIMITADORES = { #delimitadores de operações e blocos
     ";": "PONTO_VIRGULA",
     ",": "VIRGULA"
 }
+
+#classe de erro sintático
+class ErroSintatico(Exception):
+    pass
