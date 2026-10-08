@@ -1,4 +1,3 @@
-    # sintatico.py
 from util import ErroSintatico
 
 class Parser:
