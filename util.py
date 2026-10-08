@@ -7,6 +7,9 @@ class Token: #classe que representará um token do código, com tipo, valor e li
     def __repr__(self):
         return f"Token({self.tipo}, {self.valor}, linha={self.linha})" #representação do token quando houver print
 
+#classe de erro léxico
+class ErroLexico(Exception):
+    pass
 
 PALAVRAS_RESERVADAS = { #dicionário de palavras reservadas
     "program": "PROGRAM",

@@ -1,6 +1,4 @@
-from util import Token, PALAVRAS_RESERVADAS, OPERADORES, DELIMITADORES
-
-from util import Token, PALAVRAS_RESERVADAS, OPERADORES, DELIMITADORES
+from util import Token, PALAVRAS_RESERVADAS, OPERADORES, DELIMITADORES, ErroLexico
 
 #função geral de análise léxica
 def analisar(codigo):
@@ -41,9 +39,8 @@ def analisar(codigo):
             tokens.append(token)
             continue
 
-        #demais análises serão adicionadas aqui
-
-        posicao += 1
+        #caso o caractere não pertença a nenhuma condição anterior, sobe um erro léxico
+        raise ErroLexico(f"Caractere inválido '{caractere}' na linha {linha}")
 
     return tokens
 
@@ -92,6 +89,7 @@ def analisar_numero(codigo, posicao, linha):
 
     return token, posicao
 
+#função para analisar delimitadores
 def analisar_delimitador(codigo, posicao, linha):
     caractere = codigo[posicao]
 
@@ -101,6 +99,7 @@ def analisar_delimitador(codigo, posicao, linha):
 
     return token, posicao + 1
 
+#função para analisar operadores
 def analisar_operador(codigo, posicao, linha):
     operador = codigo[posicao]
 

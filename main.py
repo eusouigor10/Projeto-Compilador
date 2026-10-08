@@ -1,7 +1,7 @@
 from leitor import ler_arquivo
 from lexico import analisar
 
-programa = ler_arquivo("testes/valido.mc")
+programa = ler_arquivo("testes/erro_lexico.mc")
 
 tokens = analisar(programa)
 print('==========')

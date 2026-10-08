@@ -1,0 +1,6 @@
+program TesteErro {
+
+    int x;
+
+    x = 10 @ 20;
+}
