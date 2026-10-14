@@ -4,9 +4,10 @@ from leitor import ler_arquivo
 from lexico import analisar as analisar_lexico
 from sintatico import Parser
 from util import ErroLexico, ErroSintatico
+from visualizador_ast import imprimir_ast
 
 
-CAMINHO_TESTE = "testes/teste_geral.mc"
+CAMINHO_TESTE = "testes/testes_condicionais.mc"
 
 
 def imprimir_titulo(titulo):
@@ -73,13 +74,13 @@ def main():
     else:
         try:
             parser = Parser(tokens)
-            resultado = parser.analisar()
+            arvore = parser.analisar()
 
-            if resultado:
+            if arvore:
                 sintatico_ok = True
                 print("Análise sintática concluída com sucesso.")
-                print("O programa obedece à gramática implementada no parser.")
-                print("Observação: esta versão do parser ainda não constrói a AST.")
+                print("Árvore sintática gerada:")
+                imprimir_ast(arvore)
 
         except ErroSintatico as erro:
             print(f"FALHA SINTÁTICA: {erro}")

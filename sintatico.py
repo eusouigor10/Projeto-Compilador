@@ -1,5 +1,82 @@
 from util import ErroSintatico
 
+#biblioteca que permite criar classes com menos código
+from dataclasses import dataclass
+
+## DECLARAÇÃO DAS CLASSES QUE SERÃO OS NÓS DA AST
+
+#o programa a ser analisado
+@dataclass
+class Programa:
+    nome: str
+    declaracoes: list
+    comandos: list
+
+
+#declaração de variáveis
+@dataclass
+class Declaracao:
+    tipo: str
+    identificadores: list
+
+
+#atribuições
+@dataclass
+class Atribuicao:
+    identificador: str
+    expressao: object
+
+#read
+@dataclass
+class Leitura:
+    identificadores: list
+
+#write
+@dataclass
+class Escrita:
+    expressoes: list
+
+#bloco de comandos
+@dataclass
+class Bloco:
+    comandos: list
+
+#if/else
+@dataclass
+class Condicional:
+    condicao: object
+    bloco_entao: Bloco
+    bloco_senao: Bloco | None
+
+
+#operações com 2 operandos
+@dataclass
+class Binario:
+    operador: str
+    esquerda: object
+    direita: object
+
+#operações com 1 operando
+@dataclass
+class Unario:
+    operador: str
+    operando: object
+
+#identificadores/variáveis
+@dataclass
+class Identificador:
+    nome: str
+
+#números
+@dataclass
+class Numero:
+    valor: int
+
+#true/false
+@dataclass
+class Booleano:
+    valor: bool
+
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
@@ -22,172 +99,283 @@ class Parser:
         )
 
     def analisar(self):
-        self.programa()
+        arvore = self.programa()
         if self.token_atual() is not None:
             token = self.token_atual()
             raise ErroSintatico(f"Erro sintático na linha {token.linha}: Código extra inesperado após o fim do programa.")
-        return True
+        return arvore
 
     # <programa> ::= program <identificador> { { <declaração> } { <comando> } }
     def programa(self):
         self.consumir("PROGRAM")
-        self.consumir("IDENTIFICADOR")
+        nome = self.consumir("IDENTIFICADOR").valor
         self.consumir("ABRE_CHAVES")
+
+        #lista para guardar as declarações
+        declaracoes = []
 
         # { <declaração> }
         while self.token_atual() and self.token_atual().tipo in ["INT", "BOOL"]:
-            self.declaracao()
+            declaracoes.append(self.declaracao())
+
+        #lista para guardar os comandos
+        comandos = []
 
         # { <comando> }
         while self.token_atual() and self.token_atual().tipo != "FECHA_CHAVES":
-            self.comando()
+            comandos.append(self.comando())
 
         self.consumir("FECHA_CHAVES")
 
+        #retorna o nó do programa
+        return Programa(nome, declaracoes, comandos)
+
+
+    
     # <declaração> ::= <tipo> <lista_identificadores> ;
     def declaracao(self):
         tipo_token = self.token_atual()
+
         if tipo_token and tipo_token.tipo in ["INT", "BOOL"]:
             self.consumir(tipo_token.tipo)
         else:
-            raise ErroSintatico(f"Erro sintático na linha {tipo_token.linha}: Tipo esperado ('int' ou 'bool').")
+            raise ErroSintatico(
+                f"Erro sintático na linha {tipo_token.linha}: "
+                "Tipo esperado ('int' ou 'bool')."
+            )
 
-        self.lista_identificadores()
+        identificadores = self.lista_identificadores()
         self.consumir("PONTO_VIRGULA")
 
+        #retorna o nó da declaração
+        return Declaracao(tipo_token.valor, identificadores)
+
+
+    
     # <lista_identificadores> ::= <identificador> { , <identificador> }
     def lista_identificadores(self):
-        self.consumir("IDENTIFICADOR")
+        identificadores = []
+
+        identificadores.append(
+            self.consumir("IDENTIFICADOR").valor
+        )
+
         while self.token_atual() and self.token_atual().tipo == "VIRGULA":
             self.consumir("VIRGULA")
-            self.consumir("IDENTIFICADOR")
+            identificadores.append(
+                self.consumir("IDENTIFICADOR").valor
+            )
 
-    # <comando> ::= <atribuição> | <leitura> | <escrita> | <condicional> | <bloco>
+        return identificadores
+
+
+    
     def comando(self):
         tok = self.token_atual()
+
         if tok is None:
-            raise ErroSintatico("Fim inesperado de arquivo ao processar comandos.")
+            raise ErroSintatico(
+                "Fim inesperado de arquivo ao processar comandos."
+            )
 
         if tok.tipo == "IDENTIFICADOR":
-            self.atribuicao()
+            return self.atribuicao()
         elif tok.tipo == "READ":
-            self.leitura()
+            return self.leitura()
         elif tok.tipo == "WRITE":
-            self.escrita()
+            return self.escrita()
         elif tok.tipo == "IF":
-            self.condicional()
+            return self.condicional()
         elif tok.tipo == "ABRE_CHAVES":
-            self.bloco()
+            return self.bloco()
         else:
-            raise ErroSintatico(f"Erro sintático na linha {tok.linha}: Comando inválido '{tok.valor}'.")
+            raise ErroSintatico(
+                f"Erro sintático na linha {tok.linha}: "
+                f"Comando inválido '{tok.valor}'."
+            )
 
+    
     # <atribuição> ::= <identificador> = <expressão> ;
     def atribuicao(self):
-        self.consumir("IDENTIFICADOR")
+        identificador = self.consumir("IDENTIFICADOR").valor
         self.consumir("ATRIBUICAO")
-        self.expressao()
+        expressao = self.expressao()
         self.consumir("PONTO_VIRGULA")
 
+        return Atribuicao(
+            identificador,
+            expressao
+        )
+
+    
     # <leitura> ::= read ( <lista_identificadores> ) ;
     def leitura(self):
         self.consumir("READ")
         self.consumir("ABRE_PARENTESES")
-        self.lista_identificadores()
+
+        identificadores = self.lista_identificadores()
+
         self.consumir("FECHA_PARENTESES")
         self.consumir("PONTO_VIRGULA")
 
+        return Leitura(identificadores)
+
+    
     # <escrita> ::= write ( <lista_expressoes> ) ;
     def escrita(self):
         self.consumir("WRITE")
         self.consumir("ABRE_PARENTESES")
-        self.lista_expressoes()
+
+        expressoes = self.lista_expressoes()
+
         self.consumir("FECHA_PARENTESES")
         self.consumir("PONTO_VIRGULA")
 
-    # <condicional> ::= if ( <expressão> ) <bloco> [ else <bloco> ]
+        return Escrita(expressoes)
+
     def condicional(self):
         self.consumir("IF")
         self.consumir("ABRE_PARENTESES")
-        self.expressao()
+
+        condicao = self.expressao()
+
         self.consumir("FECHA_PARENTESES")
-        self.bloco()
+        bloco_entao = self.bloco()
+
+        bloco_senao = None
 
         if self.token_atual() and self.token_atual().tipo == "ELSE":
             self.consumir("ELSE")
-            self.bloco()
+            bloco_senao = self.bloco()
 
-    # <bloco> ::= { { <comando> } }
+        return Condicional(condicao, bloco_entao, bloco_senao)
+
     def bloco(self):
         self.consumir("ABRE_CHAVES")
+
+        comandos = []
         while self.token_atual() and self.token_atual().tipo != "FECHA_CHAVES":
-            self.comando()
+            comandos.append(self.comando())
+
         self.consumir("FECHA_CHAVES")
 
+        return Bloco(comandos)
+
+    
     # <lista_expressoes> ::= <expressão> { , <expressão> }
     def lista_expressoes(self):
-        self.expressao()
+        expressoes = [self.expressao()]
+
         while self.token_atual() and self.token_atual().tipo == "VIRGULA":
             self.consumir("VIRGULA")
-            self.expressao()
+            expressoes.append(self.expressao())
 
-    # <expressão> ::= <expressão_logica>
+        return expressoes
+    
     def expressao(self):
-        self.expressao_logica()
+        return self.expressao_logica()
 
-    # <expressão_logica> ::= <expressão_and> { || <expressão_and> }
+
     def expressao_logica(self):
-        self.expressao_and()
+        esquerda = self.expressao_and()
+
         while self.token_atual() and self.token_atual().tipo == "OU":
-            self.consumir("OU")
-            self.expressao_and()
+            operador = self.consumir("OU").valor
+            direita = self.expressao_and()
+            esquerda = Binario(operador, esquerda, direita)
 
-    # <expressão_and> ::= <expressão_relacional> { && <expressão_relacional> }
+        return esquerda
+
+
     def expressao_and(self):
-        self.expressao_relacional()
+        esquerda = self.expressao_relacional()
+
         while self.token_atual() and self.token_atual().tipo == "E":
-            self.consumir("E")
-            self.expressao_relacional()
+            operador = self.consumir("E").valor
+            direita = self.expressao_relacional()
+            esquerda = Binario(operador, esquerda, direita)
 
-    # <expressão_relacional> ::= <expressão_aritmética> [ <operador_relacional> <expressão_aritmética> ]
+        return esquerda
+
+
     def expressao_relacional(self):
-        self.expressao_aritmetica()
-        operadores_relacionais = ["MENOR", "MENOR_IGUAL", "MAIOR", "MAIOR_IGUAL", "IGUAL", "DIFERENTE"]
-        if self.token_atual() and self.token_atual().tipo in operadores_relacionais:
-            self.consumir(self.token_atual().tipo)
-            self.expressao_aritmetica()
+        esquerda = self.expressao_aritmetica()
 
+        operadores_relacionais = [
+            "MENOR", "MENOR_IGUAL", "MAIOR",
+            "MAIOR_IGUAL", "IGUAL", "DIFERENTE"
+        ]
+
+        if (
+            self.token_atual()
+            and self.token_atual().tipo in operadores_relacionais
+        ):
+            operador = self.consumir(self.token_atual().tipo).valor
+            direita = self.expressao_aritmetica()
+            esquerda = Binario(operador, esquerda, direita)
+
+        return esquerda
+
+    
     # <expressão_aritmética> ::= <termo> { (+ | -) <termo> }
     def expressao_aritmetica(self):
-        self.termo()
-        while self.token_atual() and self.token_atual().tipo in ["MAIS", "MENOS"]:
-            self.consumir(self.token_atual().tipo)
-            self.termo()
+        esquerda = self.termo()
 
+        while self.token_atual() and self.token_atual().tipo in ["MAIS", "MENOS"]:
+            operador = self.consumir(self.token_atual().tipo).valor
+            direita = self.termo()
+            esquerda = Binario(operador, esquerda, direita)
+
+        return esquerda
+
+    
     # <termo> ::= <fator> { (* | /) <fator> }
     def termo(self):
-        self.fator()
-        while self.token_atual() and self.token_atual().tipo in ["MULTIPLICACAO", "DIVISAO"]:
-            self.consumir(self.token_atual().tipo)
-            self.fator()
+        esquerda = self.fator()
 
-    # <fator> ::= <identificador> | <número> | true | false | ( <expressão> ) | ! <fator> | - <fator>
+        while self.token_atual() and self.token_atual().tipo in ["MULTIPLICACAO", "DIVISAO"]:
+            operador = self.consumir(self.token_atual().tipo).valor
+            direita = self.fator()
+            esquerda = Binario(operador, esquerda, direita)
+
+        return esquerda
+
+    
+    # <fator> ::= <identificador> | <número> | true | false
+    #          | ( <expressão> ) | ! <fator> | - <fator>
     def fator(self):
         tok = self.token_atual()
+
         if tok is None:
-            raise ErroSintatico("Erro sintático: Expressão incompleta no fim do arquivo.")
+            raise ErroSintatico(
+                "Erro sintático: Expressão incompleta no fim do arquivo."
+            )
 
         if tok.tipo == "IDENTIFICADOR":
             self.consumir("IDENTIFICADOR")
+            return Identificador(tok.valor)
+
         elif tok.tipo == "NUMERO":
             self.consumir("NUMERO")
+            return Numero(int(tok.valor))
+
         elif tok.tipo in ["TRUE", "FALSE"]:
             self.consumir(tok.tipo)
+            return Booleano(tok.tipo == "TRUE")
+
         elif tok.tipo == "ABRE_PARENTESES":
             self.consumir("ABRE_PARENTESES")
-            self.expressao()
+            expressao = self.expressao()
             self.consumir("FECHA_PARENTESES")
+            return expressao
+
         elif tok.tipo in ["NAO", "MENOS"]:
-            self.consumir(tok.tipo)
-            self.fator()
+            operador = self.consumir(tok.tipo).valor
+            operando = self.fator()
+            return Unario(operador, operando)
+
         else:
-            raise ErroSintatico(f"Erro sintático na linha {tok.linha}: Fator de expressão inválido '{tok.valor}'.")
+            raise ErroSintatico(
+                f"Erro sintático na linha {tok.linha}: "
+                f"Fator de expressão inválido '{tok.valor}'."
+            )
