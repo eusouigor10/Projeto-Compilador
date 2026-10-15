@@ -1,6 +1,6 @@
 # Compilador MiniC (Etapa 1) — Análise Léxica, Sintática e AST
 
-Este repositório contém a implementação da **Parte 1** do projeto prático da disciplina de **Compiladores** (Prof. Paulo Roberto de Oliveira). O objetivo desta etapa é construir o Front-End de um compilador para a linguagem **MiniC**, cobrindo a análise léxica, a análise sintática descendente recursiva e a construção da Árvore Sintática Abstrata (AST).
+Este repositório contém a implementação da **Parte 1** do projeto prático da disciplina de **Compiladores** (Prof. Paulo Roberto de Oliveira). O objetivo desta etapa é construir um compilador simplificado para a linguagem **MiniC**, cobrindo a análise léxica, a análise sintática e a construção da Árvore Sintática Abstrata (AST).
 
 ---
 
@@ -52,7 +52,7 @@ O projeto foi modularizado em Python sem o uso de dependências externas para ga
    cd compilador-minic
    ```
 
-2. **Execute o compilador:**
+2. **Execute o compilador com um dos arquivos de programa da pasta de testes:**
    ```bash
    python main.py
    ```
@@ -65,13 +65,13 @@ O projeto foi modularizado em Python sem o uso de dependências externas para ga
 
 O **Analisador Léxico** realiza uma varredura sequencial sobre a string do código-fonte e converte o fluxo de caracteres em uma lista de objetos `Token`.
 
-- **Tokens e Operadores Compostos:** Trata operadores simples e de dois caracteres (`==`, `<=`, `>=`, `!=`, `&&`, `||`) verificando o Lookahead do próximo caractere.
+- **Tokens e Operadores Compostos:** Trata operadores simples e de dois caracteres (`==`, `<=`, `>=`, `!=`, `&&`, `||`) verificando o próximo caractere.
 - **Gestão de Espaços e Linhas:** Espaços em branco e tabulações são ignorados, enquanto quebras de linha (`\n`) incrementam o contador de linhas para garantir mensagens de erro precisas.
 - **Tratamento de Erros:** Dispara a exceção `ErroLexico` com a indicação da linha caso um caractere inválido seja encontrado.
 
 ### 2. Análise Sintática (`sintatico.py`)
 
-O **Analisador Sintático** foi construído utilizando a técnica **Descendente Recursiva** (`Parser`), validando se a sequência de tokens está em conformidade com a Gramática Livre de Contexto da linguagem MiniC.
+O **Analisador Sintático** foi construído utilizando a técnica **Descendente Recursiva** (`Parser`), validando se a sequência de tokens está em conformidade com a gramática da linguagem MiniC.
 
 - **Precedência de Operadores:** Garantida através da hierarquia de métodos de expressões: `expressao_logica` -> `expressao_and` -> `expressao_relacional` -> `expressao_aritmetica` -> `termo` -> `fator`.
 - **Tratamento de Erros:** Lança exceções `ErroSintatico` detalhadas indicando a linha, o token recebido e o símbolo esperado.
@@ -92,11 +92,11 @@ Os testes incluem programas MiniC cobrindo:
 
 - Programas válidos com expressões aritméticas, condicionais e E/S (`read`/`write`).
 - Tratamento de falhas por **Erros Léxicos** (caracteres não reconhecidos).
-- Tratamento de falhas por **Erros Sintáticos** (estruturas malformadas ou falta de ponto e vírgula).
+- Tratamento de falhas por **Erros Sintáticos** (estruturas malformadas).
 
 ---
 
 ## Autores
 
-- Igor Daré Grubisich
+- Igor Gabriel Daré Grubisich
 - Kauan Gomes Cardoso
