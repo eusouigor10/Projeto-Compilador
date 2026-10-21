@@ -6,6 +6,10 @@ from sintatico import Parser
 from util import ErroLexico, ErroSintatico
 from visualizador_ast import imprimir_ast
 
+import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
 
 CAMINHO_TESTE = "testes/testes_condicionais.mc"
 
