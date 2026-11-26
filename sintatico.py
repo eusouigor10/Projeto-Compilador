@@ -1,7 +1,7 @@
 from util import ErroSintatico
 
 #biblioteca que permite criar classes com menos código
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 ## DECLARAÇÃO DAS CLASSES QUE SERÃO OS NÓS DA AST
 
@@ -18,6 +18,7 @@ class Programa:
 class Declaracao:
     tipo: str
     identificadores: list
+    linhas: list = field(default_factory=list)  # linha de cada identificador (análise semântica)
 
 
 #atribuições
@@ -25,16 +26,20 @@ class Declaracao:
 class Atribuicao:
     identificador: str
     expressao: object
+    linha: int = 0
 
 #read
 @dataclass
 class Leitura:
     identificadores: list
+    linhas: list = field(default_factory=list)
+    linha: int = 0
 
 #write
 @dataclass
 class Escrita:
     expressoes: list
+    linha: int = 0
 
 #bloco de comandos
 @dataclass
@@ -47,6 +52,7 @@ class Condicional:
     condicao: object
     bloco_entao: Bloco
     bloco_senao: Bloco | None
+    linha: int = 0
 
 
 #operações com 2 operandos
@@ -55,27 +61,32 @@ class Binario:
     operador: str
     esquerda: object
     direita: object
+    linha: int = 0
 
 #operações com 1 operando
 @dataclass
 class Unario:
     operador: str
     operando: object
+    linha: int = 0
 
 #identificadores/variáveis
 @dataclass
 class Identificador:
     nome: str
+    linha: int = 0
 
 #números
 @dataclass
 class Numero:
     valor: int
+    linha: int = 0
 
 #true/false
 @dataclass
 class Booleano:
     valor: bool
+    linha: int = 0
 
 class Parser:
     def __init__(self, tokens):
@@ -144,29 +155,31 @@ class Parser:
                 "Tipo esperado ('int' ou 'bool')."
             )
 
-        identificadores = self.lista_identificadores()
+        tokens_ids = self.lista_tokens_identificadores()
         self.consumir("PONTO_VIRGULA")
 
-        #retorna o nó da declaração
-        return Declaracao(tipo_token.valor, identificadores)
+        #retorna o nó da declaração (com a linha de cada identificador)
+        return Declaracao(
+            tipo_token.valor,
+            [t.valor for t in tokens_ids],
+            [t.linha for t in tokens_ids],
+        )
 
 
     
     # <lista_identificadores> ::= <identificador> { , <identificador> }
     def lista_identificadores(self):
-        identificadores = []
+        return [t.valor for t in self.lista_tokens_identificadores()]
 
-        identificadores.append(
-            self.consumir("IDENTIFICADOR").valor
-        )
+    #mesma lista, mas devolvendo os tokens (para guardar a linha de cada identificador)
+    def lista_tokens_identificadores(self):
+        tokens_ids = [self.consumir("IDENTIFICADOR")]
 
         while self.token_atual() and self.token_atual().tipo == "VIRGULA":
             self.consumir("VIRGULA")
-            identificadores.append(
-                self.consumir("IDENTIFICADOR").valor
-            )
+            tokens_ids.append(self.consumir("IDENTIFICADOR"))
 
-        return identificadores
+        return tokens_ids
 
 
     
@@ -197,33 +210,38 @@ class Parser:
     
     # <atribuição> ::= <identificador> = <expressão> ;
     def atribuicao(self):
-        identificador = self.consumir("IDENTIFICADOR").valor
+        tok = self.consumir("IDENTIFICADOR")
         self.consumir("ATRIBUICAO")
         expressao = self.expressao()
         self.consumir("PONTO_VIRGULA")
 
         return Atribuicao(
-            identificador,
-            expressao
+            tok.valor,
+            expressao,
+            tok.linha
         )
 
     
     # <leitura> ::= read ( <lista_identificadores> ) ;
     def leitura(self):
-        self.consumir("READ")
+        tok = self.consumir("READ")
         self.consumir("ABRE_PARENTESES")
 
-        identificadores = self.lista_identificadores()
+        tokens_ids = self.lista_tokens_identificadores()
 
         self.consumir("FECHA_PARENTESES")
         self.consumir("PONTO_VIRGULA")
 
-        return Leitura(identificadores)
+        return Leitura(
+            [t.valor for t in tokens_ids],
+            [t.linha for t in tokens_ids],
+            tok.linha
+        )
 
     
     # <escrita> ::= write ( <lista_expressoes> ) ;
     def escrita(self):
-        self.consumir("WRITE")
+        tok = self.consumir("WRITE")
         self.consumir("ABRE_PARENTESES")
 
         expressoes = self.lista_expressoes()
@@ -231,10 +249,10 @@ class Parser:
         self.consumir("FECHA_PARENTESES")
         self.consumir("PONTO_VIRGULA")
 
-        return Escrita(expressoes)
+        return Escrita(expressoes, tok.linha)
 
     def condicional(self):
-        self.consumir("IF")
+        tok_if = self.consumir("IF")
         self.consumir("ABRE_PARENTESES")
 
         condicao = self.expressao()
@@ -248,7 +266,7 @@ class Parser:
             self.consumir("ELSE")
             bloco_senao = self.bloco()
 
-        return Condicional(condicao, bloco_entao, bloco_senao)
+        return Condicional(condicao, bloco_entao, bloco_senao, tok_if.linha)
 
     def bloco(self):
         self.consumir("ABRE_CHAVES")
@@ -280,9 +298,9 @@ class Parser:
         esquerda = self.expressao_and()
 
         while self.token_atual() and self.token_atual().tipo == "OU":
-            operador = self.consumir("OU").valor
+            tok_op = self.consumir("OU")
             direita = self.expressao_and()
-            esquerda = Binario(operador, esquerda, direita)
+            esquerda = Binario(tok_op.valor, esquerda, direita, tok_op.linha)
 
         return esquerda
 
@@ -291,9 +309,9 @@ class Parser:
         esquerda = self.expressao_relacional()
 
         while self.token_atual() and self.token_atual().tipo == "E":
-            operador = self.consumir("E").valor
+            tok_op = self.consumir("E")
             direita = self.expressao_relacional()
-            esquerda = Binario(operador, esquerda, direita)
+            esquerda = Binario(tok_op.valor, esquerda, direita, tok_op.linha)
 
         return esquerda
 
@@ -310,9 +328,9 @@ class Parser:
             self.token_atual()
             and self.token_atual().tipo in operadores_relacionais
         ):
-            operador = self.consumir(self.token_atual().tipo).valor
+            tok_op = self.consumir(self.token_atual().tipo)
             direita = self.expressao_aritmetica()
-            esquerda = Binario(operador, esquerda, direita)
+            esquerda = Binario(tok_op.valor, esquerda, direita, tok_op.linha)
 
         return esquerda
 
@@ -322,9 +340,9 @@ class Parser:
         esquerda = self.termo()
 
         while self.token_atual() and self.token_atual().tipo in ["MAIS", "MENOS"]:
-            operador = self.consumir(self.token_atual().tipo).valor
+            tok_op = self.consumir(self.token_atual().tipo)
             direita = self.termo()
-            esquerda = Binario(operador, esquerda, direita)
+            esquerda = Binario(tok_op.valor, esquerda, direita, tok_op.linha)
 
         return esquerda
 
@@ -334,9 +352,9 @@ class Parser:
         esquerda = self.fator()
 
         while self.token_atual() and self.token_atual().tipo in ["MULTIPLICACAO", "DIVISAO"]:
-            operador = self.consumir(self.token_atual().tipo).valor
+            tok_op = self.consumir(self.token_atual().tipo)
             direita = self.fator()
-            esquerda = Binario(operador, esquerda, direita)
+            esquerda = Binario(tok_op.valor, esquerda, direita, tok_op.linha)
 
         return esquerda
 
@@ -353,15 +371,15 @@ class Parser:
 
         if tok.tipo == "IDENTIFICADOR":
             self.consumir("IDENTIFICADOR")
-            return Identificador(tok.valor)
+            return Identificador(tok.valor, tok.linha)
 
         elif tok.tipo == "NUMERO":
             self.consumir("NUMERO")
-            return Numero(int(tok.valor))
+            return Numero(int(tok.valor), tok.linha)
 
         elif tok.tipo in ["TRUE", "FALSE"]:
             self.consumir(tok.tipo)
-            return Booleano(tok.tipo == "TRUE")
+            return Booleano(tok.tipo == "TRUE", tok.linha)
 
         elif tok.tipo == "ABRE_PARENTESES":
             self.consumir("ABRE_PARENTESES")
@@ -372,10 +390,10 @@ class Parser:
         elif tok.tipo in ["NAO", "MENOS"]:
             operador = self.consumir(tok.tipo).valor
             operando = self.fator()
-            return Unario(operador, operando)
+            return Unario(operador, operando, tok.linha)
 
         else:
             raise ErroSintatico(
                 f"Erro sintático na linha {tok.linha}: "
                 f"Fator de expressão inválido '{tok.valor}'."
-            )
+            )
