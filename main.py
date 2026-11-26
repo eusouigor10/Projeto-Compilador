@@ -7,7 +7,7 @@ from util import ErroLexico, ErroSintatico
 from visualizador_ast import imprimir_ast
 
 
-CAMINHO_TESTE = "testes/testes_condicionais.mc"
+CAMINHO_TESTE = "testes/testes_atividade.mc"
 
 
 def imprimir_titulo(titulo):

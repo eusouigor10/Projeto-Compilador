@@ -1,6 +1,4 @@
 program TesteErro {
 
-    int x;
-
-    x = 10 @ 20;
+    x = 1;
 }
