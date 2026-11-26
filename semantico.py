@@ -121,11 +121,12 @@ class AnalisadorSemantico:
     # O read armazena valores em variáveis, então cada identificador precisa
     # estar declarado (int ou bool). Repetir a mesma variável no mesmo read
     # também é sinalizado, pois o primeiro valor lido seria descartado.
+    
     def verificar_leitura(self, leitura: Leitura):
-        ja_lidas = set()
-
         for indice, nome in enumerate(leitura.identificadores):
-            linha = self._linha_da_lista(leitura.linhas, indice, leitura.linha)
+            linha = self._linha_da_lista(
+                leitura.linhas, indice, leitura.linha
+            )
 
             if not self.tabela.existe(nome):
                 self.erro(
@@ -133,14 +134,6 @@ class AnalisadorSemantico:
                     f"não foi declarada.",
                     linha,
                 )
-            elif nome in ja_lidas:
-                self.erro(
-                    f"variável '{nome}' aparece mais de uma vez "
-                    f"no mesmo comando read.",
-                    linha,
-                )
-
-            ja_lidas.add(nome)
 
     # <escrita> ::= write ( <lista_expressoes> ) ;
     # Cada expressão precisa ser válida (variáveis declaradas e tipos corretos).
